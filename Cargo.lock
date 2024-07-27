@@ -5,9 +5,10 @@ version = 3
 [[package]]
 name = "aprs-parser"
 version = "0.2.0"
-source = "git+https://github.com/Meisterschueler/aprs-parser-rs?branch=clean#439cc5d61d0616074220a389fcc2ecae41310da6"
+source = "git+https://github.com/Meisterschueler/aprs-parser-rs?branch=clean#fd2748de50fa3e5278d3eec20c8f2bac64410824"
 dependencies = [
  "serde",
+ "serde_json",
  "thiserror",
 ]
 
@@ -36,6 +37,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b248f5224d1d606005e02c97f5aa4e88eeb230488bcc03bc9ca4d7991399f2b5"
 
 [[package]]
+name = "itoa"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
+
+[[package]]
 name = "libc"
 version = "0.2.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -56,6 +63,8 @@ version = "0.1.0"
 dependencies = [
  "aprs-parser",
  "pyo3",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -66,9 +75,9 @@ checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
 name = "portable-atomic"
-version = "1.6.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7170ef9988bc169ba16dd36a7fa041e5c4cbeb6a35b76d4c03daded371eae7c0"
+checksum = "da544ee218f0d287a911e9c99a39a8c9bc8fcad3cb8db5959940044ecfc67265"
 
 [[package]]
 name = "proc-macro2"
@@ -81,9 +90,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.22.1"
+version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e99090d12f6182924499253aaa1e73bf15c69cea8d2774c3c781e35badc3548"
+checksum = "831e8e819a138c36e212f3af3fd9eeffed6bf1510a805af35b0edee5ffa59433"
 dependencies = [
  "cfg-if",
  "indoc",
@@ -99,9 +108,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.22.1"
+version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7879eb018ac754bba32cb0eec7526391c02c14a093121857ed09fbf1d1057d41"
+checksum = "1e8730e591b14492a8945cdff32f089250b05f5accecf74aeddf9e8272ce1fa8"
 dependencies = [
  "once_cell",
  "target-lexicon",
@@ -109,9 +118,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-ffi"
-version = "0.22.1"
+version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce2baa5559a411fc1cf519295f24c34b53d5d725818bc96b5abf94762da09041"
+checksum = "5e97e919d2df92eb88ca80a037969f44e5e70356559654962cbb3316d00300c6"
 dependencies = [
  "libc",
  "pyo3-build-config",
@@ -119,9 +128,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros"
-version = "0.22.1"
+version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "049621c20a23f2def20f4fe67978d1da8d8a883d64b9c21362f3b776e254edc7"
+checksum = "eb57983022ad41f9e683a599f2fd13c3664d7063a3ac5714cae4b7bee7d3f206"
 dependencies = [
  "proc-macro2",
  "pyo3-macros-backend",
@@ -131,9 +140,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros-backend"
-version = "0.22.1"
+version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e969ee2e025435f1819d31a275ba4bb9cbbdf3ac535227fdbd85b9322ffe144"
+checksum = "ec480c0c51ddec81019531705acac51bcdbeae563557c982aa8263bb96880372"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -150,6 +159,12 @@ checksum = "0fa76aaf39101c457836aec0ce2316dbdc3ab723cdda1c6bd4e6ad4208acaca7"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "ryu"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "serde"
@@ -169,6 +184,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.120"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e0d21c9a8cae1235ad58a00c11cb40d4b1e5c784f1ef2c537876ed6ffd8b7c5"
+dependencies = [
+ "itoa",
+ "ryu",
+ "serde",
 ]
 
 [[package]]

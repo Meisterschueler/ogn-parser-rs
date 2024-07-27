@@ -6,6 +6,19 @@ use pyo3::types::PyList;
 use std::collections::HashMap;
 
 #[pyfunction]
+pub fn parse_to_json(py: Python<'_>, o: PyObject) -> PyResult<PyObject> {
+    if let Ok(s) = o.extract::<&str>(py) {
+        let message = s.parse::<Message>().unwrap();
+        let result = serde_json::to_string(&message).unwrap();
+        Ok(result.into_py(py))
+    } else {
+        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+            "Expected a string",
+        ))
+    }
+}
+
+#[pyfunction]
 pub fn parse(py: Python<'_>, o: PyObject) -> PyResult<PyObject> {
     if let Ok(s) = o.extract::<&str>(py) {
         parse_str(py, s)

@@ -1,8 +1,9 @@
+use serde::Serialize;
 use std::{convert::Infallible, str::FromStr};
 
 use crate::utils::{extract_values, split_value_unit};
 
-#[derive(Debug, PartialEq, Default, Clone)]
+#[derive(Debug, PartialEq, Default, Clone, Serialize)]
 pub struct StatusComment {
     pub version: Option<String>,
     pub platform: Option<String>,

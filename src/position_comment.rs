@@ -1,13 +1,14 @@
+use serde::Serialize;
 use std::{convert::Infallible, str::FromStr};
 
 use crate::utils::split_value_unit;
-#[derive(Debug, PartialEq, Eq, Default, Clone)]
+#[derive(Debug, PartialEq, Eq, Default, Clone, Serialize)]
 pub struct AdditionalPrecision {
     pub lat: u8,
     pub lon: u8,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub struct ID {
     pub address_type: u8,
     pub aircraft_type: u8,
@@ -16,7 +17,7 @@ pub struct ID {
     pub address: u32,
 }
 
-#[derive(Debug, PartialEq, Default, Clone)]
+#[derive(Debug, PartialEq, Default, Clone, Serialize)]
 pub struct PositionComment {
     pub course: Option<u16>,
     pub speed: Option<u16>,
