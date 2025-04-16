@@ -88,7 +88,7 @@ impl FromStr for AprsData {
     fn from_str(s: &str) -> Result<Self, AprsError> {
         Ok(match s.chars().next().unwrap_or(0 as char) {
             ':' => AprsData::Message(AprsMessage::from_str(&s[1..])?),
-            '!' | '/' | '=' | '@' => AprsData::Position(AprsPosition::from_str(s)?),
+            '/' => AprsData::Position(AprsPosition::from_str(&s[1..])?),
             '>' => AprsData::Status(AprsStatus::from_str(&s[1..])?),
             _ => AprsData::Unknown,
         })
@@ -131,7 +131,7 @@ mod tests {
 
         match result.data {
             AprsData::Position(position) => {
-                assert_eq!(position.timestamp, Some(Timestamp::HHMMSS(7, 48, 49)));
+                assert_eq!(position.timestamp, Timestamp::HHMMSS(7, 48, 49));
                 assert_relative_eq!(*position.latitude, 48.36023333333334);
                 assert_relative_eq!(*position.longitude, 12.408266666666666);
                 /*assert_eq!(

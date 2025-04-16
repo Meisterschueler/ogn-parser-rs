@@ -8,8 +8,6 @@ pub enum AprsError {
     InvalidSSID(String),
     #[error("Invalid Timestamp: {0}")]
     InvalidTimestamp(String),
-    #[error("Unsupported Position Format: {0}")]
-    UnsupportedPositionFormat(String),
     #[error("Invalid Position: {0}")]
     InvalidPosition(String),
     #[error("Invalid Latitude: {0}")]

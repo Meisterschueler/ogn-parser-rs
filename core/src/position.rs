@@ -11,8 +11,7 @@ use crate::position_comment::PositionComment;
 
 #[derive(PartialEq, Debug, Clone, Serialize)]
 pub struct AprsPosition {
-    pub timestamp: Option<Timestamp>,
-    pub messaging_supported: bool,
+    pub timestamp: Timestamp,
     pub latitude: Latitude,
     pub longitude: Longitude,
     pub symbol_table: char,
@@ -24,35 +23,22 @@ impl FromStr for AprsPosition {
     type Err = AprsError;
 
     fn from_str(s: &str) -> Result<Self, <Self as FromStr>::Err> {
-        let messaging_supported = s.starts_with('=') || s.starts_with('@');
-        let has_timestamp = s.starts_with('@') || s.starts_with('/');
-
         // check for minimal message length
-        if (!has_timestamp && s.len() < 19) || (has_timestamp && s.len() < 26) {
+        if s.len() < 25 {
             return Err(AprsError::InvalidPosition(s.to_owned()));
         };
 
-        // Extract timestamp and remaining string
-        let (timestamp, s) = if has_timestamp {
-            (Some(s[1..8].parse()?), &s[8..])
-        } else {
-            (None, &s[1..])
-        };
-
-        // check for compressed position format
-        let is_uncompressed_position = s.chars().take(1).all(|c| c.is_numeric());
-        if !is_uncompressed_position {
-            return Err(AprsError::UnsupportedPositionFormat(s.to_owned()));
-        }
+        // Extract timestamp
+        let timestamp = s[0..7].parse()?;
 
         // parse position
-        let mut latitude: Latitude = s[0..8].parse()?;
-        let mut longitude: Longitude = s[9..18].parse()?;
+        let mut latitude: Latitude = s[7..15].parse()?;
+        let mut longitude: Longitude = s[16..25].parse()?;
 
-        let symbol_table = s.chars().nth(8).unwrap();
-        let symbol_code = s.chars().nth(18).unwrap();
+        let symbol_table = s.chars().nth(15).unwrap();
+        let symbol_code = s.chars().nth(25).unwrap();
 
-        let comment = &s[19..s.len()];
+        let comment = &s[26..s.len()];
 
         // parse the comment
         let ogn = comment.parse::<PositionComment>().unwrap();
@@ -65,7 +51,6 @@ impl FromStr for AprsPosition {
 
         Ok(AprsPosition {
             timestamp,
-            messaging_supported,
             latitude,
             longitude,
             symbol_table,
@@ -77,18 +62,7 @@ impl FromStr for AprsPosition {
 
 impl AprsPosition {
     pub fn encode<W: Write>(&self, buf: &mut W) -> Result<(), EncodeError> {
-        let sym = match (self.timestamp.is_some(), self.messaging_supported) {
-            (true, true) => '@',
-            (true, false) => '/',
-            (false, true) => '=',
-            (false, false) => '!',
-        };
-
-        write!(buf, "{}", sym)?;
-
-        if let Some(ts) = &self.timestamp {
-            write!(buf, "{}", ts)?;
-        }
+        write!(buf, "/{}", self.timestamp)?;
 
         write!(
             buf,
@@ -111,65 +85,11 @@ mod tests {
     use std::io::stdout;
 
     #[test]
-    fn parse_without_timestamp_or_messaging() {
-        let result = r"!4903.50N/07201.75W-".parse::<AprsPosition>().unwrap();
-        assert_eq!(result.timestamp, None);
-        assert_eq!(result.messaging_supported, false);
-        assert_relative_eq!(*result.latitude, 49.05833333333333);
-        assert_relative_eq!(*result.longitude, -72.02916666666667);
-        assert_eq!(result.symbol_table, '/');
-        assert_eq!(result.symbol_code, '-');
-        assert_eq!(result.comment, PositionComment::default());
-    }
-
-    #[test]
-    fn parse_with_comment() {
-        let result = r"!4903.50N/07201.75W-Hello/A=001000"
-            .parse::<AprsPosition>()
-            .unwrap();
-        assert_eq!(result.timestamp, None);
-        assert_relative_eq!(*result.latitude, 49.05833333333333);
-        assert_relative_eq!(*result.longitude, -72.02916666666667);
-        assert_eq!(result.symbol_table, '/');
-        assert_eq!(result.symbol_code, '-');
-        assert_eq!(result.comment.unparsed.unwrap(), "Hello/A=001000");
-    }
-
-    #[test]
     fn parse_with_timestamp_without_messaging() {
-        let result = r"/074849h4821.61N\01224.49E^322/103/A=003054"
+        let result = r"074849h4821.61N\01224.49E^322/103/A=003054"
             .parse::<AprsPosition>()
             .unwrap();
-        assert_eq!(result.timestamp, Some(Timestamp::HHMMSS(7, 48, 49)));
-        assert_eq!(result.messaging_supported, false);
-        assert_relative_eq!(*result.latitude, 48.36016666666667);
-        assert_relative_eq!(*result.longitude, 12.408166666666666);
-        assert_eq!(result.symbol_table, '\\');
-        assert_eq!(result.symbol_code, '^');
-        assert_eq!(result.comment.altitude.unwrap(), 003054);
-        assert_eq!(result.comment.course.unwrap(), 322);
-        assert_eq!(result.comment.speed.unwrap(), 103);
-    }
-
-    #[test]
-    fn parse_without_timestamp_with_messaging() {
-        let result = r"=4903.50N/07201.75W-".parse::<AprsPosition>().unwrap();
-        assert_eq!(result.timestamp, None);
-        assert_eq!(result.messaging_supported, true);
-        assert_relative_eq!(*result.latitude, 49.05833333333333);
-        assert_relative_eq!(*result.longitude, -72.02916666666667);
-        assert_eq!(result.symbol_table, '/');
-        assert_eq!(result.symbol_code, '-');
-        assert_eq!(result.comment, PositionComment::default());
-    }
-
-    #[test]
-    fn parse_with_timestamp_and_messaging() {
-        let result = r"@074849h4821.61N\01224.49E^322/103/A=003054"
-            .parse::<AprsPosition>()
-            .unwrap();
-        assert_eq!(result.timestamp, Some(Timestamp::HHMMSS(7, 48, 49)));
-        assert_eq!(result.messaging_supported, true);
+        assert_eq!(result.timestamp, Timestamp::HHMMSS(7, 48, 49));
         assert_relative_eq!(*result.latitude, 48.36016666666667);
         assert_relative_eq!(*result.longitude, 12.408166666666666);
         assert_eq!(result.symbol_table, '\\');
@@ -182,7 +102,7 @@ mod tests {
     #[ignore = "position_comment serialization not implemented"]
     #[test]
     fn test_serialize() {
-        let aprs_position = r"@074849h4821.61N\01224.49E^322/103/A=003054"
+        let aprs_position = r"074849h4821.61N\01224.49E^322/103/A=003054"
             .parse::<AprsPosition>()
             .unwrap();
         let mut wtr = WriterBuilder::new().from_writer(stdout());
@@ -192,7 +112,7 @@ mod tests {
 
     #[test]
     fn test_input_string_too_short() {
-        let result = "/13244".parse::<AprsPosition>();
+        let result = "13244".parse::<AprsPosition>();
         assert!(result.is_err(), "Short input string should return an error");
     }
 }
