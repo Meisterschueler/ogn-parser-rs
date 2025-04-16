@@ -22,6 +22,14 @@ pub enum AprsError {
     InvalidMessageId(String),
     #[error("String contains non-ASCII characters: {0}")]
     InvalidCoding(String),
+    #[error("Invalid additional precision: {0}")]
+    InvalidAdditionalPrecision(String),
+    #[error("Incomplete Comment: {0}")]
+    IncompleteComment(String),
+    #[error("Invalid Course/Speed/Altitude: {0}")]
+    InvalidCourseSpeedAltitude(String),
+    #[error("Invalid Altitude: {0}")]
+    InvalidAltitude(String),
 }
 
 #[derive(Debug, PartialEq, thiserror::Error)]

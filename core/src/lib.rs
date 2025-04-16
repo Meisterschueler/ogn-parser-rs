@@ -69,7 +69,6 @@ mod lonlat;
 mod message;
 mod packet;
 mod position;
-mod position_comment;
 mod status;
 mod status_comment;
 mod timestamp;

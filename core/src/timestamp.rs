@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::AprsError;
 use serde::Serialize;
 
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, Default)]
 pub enum Timestamp {
     /// Day of month, Hour and Minute in UTC
     DDHHMM(u8, u8, u8),
@@ -12,6 +12,9 @@ pub enum Timestamp {
     HHMMSS(u8, u8, u8),
     /// Unsupported timestamp format
     Unsupported(String),
+    /// Default case
+    #[default]
+    Unknown,
 }
 
 impl FromStr for Timestamp {
@@ -49,6 +52,7 @@ impl Display for Timestamp {
             Self::DDHHMM(d, h, m) => write!(f, "{:02}{:02}{:02}z", d, h, m),
             Self::HHMMSS(h, m, s) => write!(f, "{:02}{:02}{:02}h", h, m, s),
             Self::Unsupported(s) => write!(f, "{}", s),
+            Self::Unknown => write!(f, "unknown"),
         }
     }
 }
