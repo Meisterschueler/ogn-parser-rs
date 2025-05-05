@@ -15,5 +15,5 @@ crate-type = ["cdylib"]
 pyo3 = { version= "0.24.2", features = ["chrono"] }
 rayon = "1.10.0"
 serde_json = "1.0"
-ogn-parser = { path = "../core", version = "0.3.8" }
+ogn-parser = { path = "../core", version = "0.3.9" }
 pythonize = "0.24.0"
