@@ -1,6 +1,6 @@
 use rust_decimal::prelude::*;
 use serde::Serialize;
-use std::{convert::Infallible, str::FromStr};
+use std::{convert::Infallible, fmt, str::FromStr};
 
 use crate::utils::{split_letter_number_pairs, split_value_unit};
 #[derive(Debug, PartialEq, Eq, Default, Clone, Serialize)]
@@ -73,6 +73,14 @@ pub struct PositionComment {
     pub hardware_version: Option<u8>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub original_address: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub adsb_emitter_category: Option<AdsbEmitterCategory>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub flight_number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub call_sign: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub squawk: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unparsed: Option<String>,
 }
@@ -252,6 +260,18 @@ impl FromStr for PositionComment {
                 } else {
                     unparsed.push(part);
                 }
+            // Squawk code: SqXXXX (case insensitive)
+            // XXXX: 4-digit squawk code
+            } else if part.len() == 6
+                && part.to_lowercase().starts_with("sq")
+                && position_comment.squawk.is_none()
+            {
+                let squawk_code = &part[2..];
+                if squawk_code.len() == 4 && squawk_code.chars().all(|c| c.is_ascii_digit()) {
+                    position_comment.squawk = Some(squawk_code.to_string());
+                } else {
+                    unparsed.push(part);
+                }
             } else if let Some((value, unit)) = split_value_unit(part) {
                 if unit == "fpm" && position_comment.climb_rate.is_none() {
                     position_comment.climb_rate = value.parse::<i16>().ok();
@@ -332,6 +352,34 @@ impl FromStr for PositionComment {
                 } else {
                     unparsed.push(part);
                 }
+            // Call sign and flight number with optional fn prefix: fnA3:TW800 or A2:RA135
+            // If starts with "fn": both flight_number and call_sign get the value
+            // If no "fn": only call_sign gets the value
+            } else if part.contains(':')
+                && position_comment.adsb_emitter_category.is_none()
+                && position_comment.call_sign.is_none()
+            {
+                if let Some((category_part, identifier)) = part.split_once(':') {
+                    // Check if it starts with "fn"
+                    let (category_str, has_fn_prefix) = if let Some(stripped) = category_part.strip_prefix("fn") {
+                        (stripped, true)
+                    } else {
+                        (category_part, false)
+                    };
+
+                    // Try to parse the emitter category
+                    if let Ok(category) = category_str.parse::<AdsbEmitterCategory>() {
+                        position_comment.adsb_emitter_category = Some(category);
+                        position_comment.call_sign = Some(identifier.to_string());
+                        if has_fn_prefix {
+                            position_comment.flight_number = Some(identifier.to_string());
+                        }
+                    } else {
+                        unparsed.push(part);
+                    }
+                } else {
+                    unparsed.push(part);
+                }
             } else {
                 unparsed.push(part);
             }
@@ -343,6 +391,97 @@ impl FromStr for PositionComment {
         };
 
         Ok(position_comment)
+    }
+}
+
+/// ADS-B emitter category codes as per DO-260B specification
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum AdsbEmitterCategory {
+    // Category A: Aircraft types
+    A0, // No ADS-B emitter category information
+    A1, // Light aircraft (< 15,500 lbs)
+    A2, // Small aircraft (15,500 to 75,000 lbs)
+    A3, // Large aircraft (75,000 to 300,000 lbs)
+    A4, // High vortex large aircraft (like B-757)
+    A5, // Heavy aircraft (> 300,000 lbs)
+    A6, // High performance aircraft
+    A7, // Rotorcraft
+
+    // Category B: Special aircraft types
+    B0, // No ADS-B emitter category information
+    B1, // Glider/sailplane
+    B2, // Lighter-than-air (airship/balloon)
+    B3, // Parachutist/skydiver
+    B4, // Ultralight/hang-glider/paraglider
+    B6, // Unmanned aerial vehicle
+    B7, // Space/trans-atmospheric vehicle
+
+    // Category C: Surface vehicles and obstacles
+    C0, // No ADS-B emitter category information
+    C1, // Surface emergency vehicle
+    C2, // Surface service vehicle
+    C3, // Point obstacle
+    C4, // Cluster obstacle
+    C5, // Line obstacle
+}
+
+impl fmt::Display for AdsbEmitterCategory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            AdsbEmitterCategory::A0 => "A0",
+            AdsbEmitterCategory::A1 => "A1",
+            AdsbEmitterCategory::A2 => "A2",
+            AdsbEmitterCategory::A3 => "A3",
+            AdsbEmitterCategory::A4 => "A4",
+            AdsbEmitterCategory::A5 => "A5",
+            AdsbEmitterCategory::A6 => "A6",
+            AdsbEmitterCategory::A7 => "A7",
+            AdsbEmitterCategory::B0 => "B0",
+            AdsbEmitterCategory::B1 => "B1",
+            AdsbEmitterCategory::B2 => "B2",
+            AdsbEmitterCategory::B3 => "B3",
+            AdsbEmitterCategory::B4 => "B4",
+            AdsbEmitterCategory::B6 => "B6",
+            AdsbEmitterCategory::B7 => "B7",
+            AdsbEmitterCategory::C0 => "C0",
+            AdsbEmitterCategory::C1 => "C1",
+            AdsbEmitterCategory::C2 => "C2",
+            AdsbEmitterCategory::C3 => "C3",
+            AdsbEmitterCategory::C4 => "C4",
+            AdsbEmitterCategory::C5 => "C5",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+impl FromStr for AdsbEmitterCategory {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "A0" => Ok(AdsbEmitterCategory::A0),
+            "A1" => Ok(AdsbEmitterCategory::A1),
+            "A2" => Ok(AdsbEmitterCategory::A2),
+            "A3" => Ok(AdsbEmitterCategory::A3),
+            "A4" => Ok(AdsbEmitterCategory::A4),
+            "A5" => Ok(AdsbEmitterCategory::A5),
+            "A6" => Ok(AdsbEmitterCategory::A6),
+            "A7" => Ok(AdsbEmitterCategory::A7),
+            "B0" => Ok(AdsbEmitterCategory::B0),
+            "B1" => Ok(AdsbEmitterCategory::B1),
+            "B2" => Ok(AdsbEmitterCategory::B2),
+            "B3" => Ok(AdsbEmitterCategory::B3),
+            "B4" => Ok(AdsbEmitterCategory::B4),
+            "B6" => Ok(AdsbEmitterCategory::B6),
+            "B7" => Ok(AdsbEmitterCategory::B7),
+            "C0" => Ok(AdsbEmitterCategory::C0),
+            "C1" => Ok(AdsbEmitterCategory::C1),
+            "C2" => Ok(AdsbEmitterCategory::C2),
+            "C3" => Ok(AdsbEmitterCategory::C3),
+            "C4" => Ok(AdsbEmitterCategory::C4),
+            "C5" => Ok(AdsbEmitterCategory::C5),
+            _ => Err(()),
+        }
     }
 }
 
@@ -373,6 +512,10 @@ fn test_flr() {
             software_version: Decimal::from_f32(7.07),
             hardware_version: Some(65),
             original_address: u32::from_str_radix("D002F8", 16).ok(),
+            adsb_emitter_category: None,
+            flight_number: None,
+            call_sign: None,
+            squawk: None,
             ..Default::default()
         }
     );
@@ -419,6 +562,10 @@ fn test_trk() {
             software_version: None,
             hardware_version: None,
             original_address: None,
+            adsb_emitter_category: None,
+            flight_number: None,
+            call_sign: None,
+            squawk: None,
             unparsed: None
         }
     );
@@ -449,6 +596,10 @@ fn test_trk2() {
             gps_quality: Some("9x13".into()),
             flight_level: Decimal::from_f32(21.72),
             signal_power: Decimal::from_f32(15.8),
+            adsb_emitter_category: None,
+            flight_number: None,
+            call_sign: None,
+            squawk: None,
             ..Default::default()
         }
     );
@@ -480,6 +631,10 @@ fn test_trk2_different_order() {
             gps_quality: Some("9x13".into()),
             flight_level: Decimal::from_f32(21.72),
             signal_power: Decimal::from_f32(15.8),
+            adsb_emitter_category: None,
+            flight_number: None,
+            call_sign: None,
+            squawk: None,
             ..Default::default()
         }
     );
@@ -544,4 +699,131 @@ fn parse_weather_duplicate_type() {
         result.unparsed,
         Some("187/004g007t075g78b63620".to_string())
     );
+}
+
+#[test]
+fn test_flight_number_with_fn_prefix() {
+    let result = "000/000/A=001000 fnA3:TW800"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.adsb_emitter_category, Some(AdsbEmitterCategory::A3));
+    assert_eq!(result.flight_number, Some("TW800".to_string()));
+    assert_eq!(result.call_sign, Some("TW800".to_string()));
+}
+
+#[test]
+fn test_flight_number_without_fn_prefix() {
+    let result = "000/000/A=001000 A2:RA135"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.adsb_emitter_category, Some(AdsbEmitterCategory::A2));
+    assert_eq!(result.flight_number, None);
+    assert_eq!(result.call_sign, Some("RA135".to_string()));
+}
+
+#[test]
+fn test_flight_number_different_categories() {
+    let result1 = "000/000/A=001000 B1:GLIDER1"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result1.adsb_emitter_category, Some(AdsbEmitterCategory::B1));
+    assert_eq!(result1.flight_number, None);
+    assert_eq!(result1.call_sign, Some("GLIDER1".to_string()));
+
+    let result2 = "000/000/A=001000 fnC2:SERVICE1"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result2.adsb_emitter_category, Some(AdsbEmitterCategory::C2));
+    assert_eq!(result2.flight_number, Some("SERVICE1".to_string()));
+    assert_eq!(result2.call_sign, Some("SERVICE1".to_string()));
+}
+
+#[test]
+fn test_flight_number_invalid_category() {
+    let result = "000/000/A=001000 fnZ9:INVALID"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.adsb_emitter_category, None);
+    assert_eq!(result.flight_number, None);
+    assert_eq!(result.call_sign, None);
+    assert_eq!(result.unparsed, Some("fnZ9:INVALID".to_string()));
+}
+
+#[test]
+fn test_squawk_uppercase() {
+    let result = "000/000/A=001000 Sq1200"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.squawk, Some("1200".to_string()));
+}
+
+#[test]
+fn test_squawk_lowercase() {
+    let result = "000/000/A=001000 sq7700"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.squawk, Some("7700".to_string()));
+}
+
+#[test]
+fn test_squawk_mixed_case() {
+    let result = "000/000/A=001000 SQ1234"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.squawk, Some("1234".to_string()));
+}
+
+#[test]
+fn test_squawk_invalid_length() {
+    let result = "000/000/A=001000 Sq123".parse::<PositionComment>().unwrap();
+    assert_eq!(result.squawk, None);
+    assert_eq!(result.unparsed, Some("Sq123".to_string()));
+}
+
+#[test]
+fn test_squawk_invalid_characters() {
+    let result = "000/000/A=001000 Sq12A3"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.squawk, None);
+    assert_eq!(result.unparsed, Some("Sq12A3".to_string()));
+}
+
+#[test]
+fn test_call_sign_with_fn_prefix() {
+    let result = "000/000/A=001000 fnA1:ABC123"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.adsb_emitter_category, Some(AdsbEmitterCategory::A1));
+    assert_eq!(result.flight_number, Some("ABC123".to_string()));
+    assert_eq!(result.call_sign, Some("ABC123".to_string()));
+}
+
+#[test]
+fn test_call_sign_without_fn_prefix() {
+    let result = "000/000/A=001000 B2:XYZ789"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.adsb_emitter_category, Some(AdsbEmitterCategory::B2));
+    assert_eq!(result.flight_number, None);
+    assert_eq!(result.call_sign, Some("XYZ789".to_string()));
+}
+
+#[test]
+fn test_comprehensive_call_sign_flight_number_behavior() {
+    // Test with fn prefix - both fields should be set
+    let with_fn = "000/000/A=001000 fnA3:FLIGHT1"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(with_fn.adsb_emitter_category, Some(AdsbEmitterCategory::A3));
+    assert_eq!(with_fn.flight_number, Some("FLIGHT1".to_string()));
+    assert_eq!(with_fn.call_sign, Some("FLIGHT1".to_string()));
+
+    // Test without fn prefix - only call_sign should be set
+    let without_fn = "000/000/A=001000 A3:FLIGHT1"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(without_fn.adsb_emitter_category, Some(AdsbEmitterCategory::A3));
+    assert_eq!(without_fn.flight_number, None);
+    assert_eq!(without_fn.call_sign, Some("FLIGHT1".to_string()));
 }
