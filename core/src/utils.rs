@@ -61,10 +61,8 @@ pub fn split_letter_number_pairs(s: &str) -> Vec<(char, i32)> {
     while let Some(c) = chars.next() {
         if c.is_ascii_alphabetic() {
             let mut number_str = String::new();
-            if let Some(&next) = chars.peek() {
-                if next == '-' {
-                    number_str.push(chars.next().unwrap());
-                }
+            if let Some(&next) = chars.peek() && next == '-' {
+                number_str.push(chars.next().unwrap());
             }
             while let Some(&next) = chars.peek() {
                 if next.is_ascii_digit() {

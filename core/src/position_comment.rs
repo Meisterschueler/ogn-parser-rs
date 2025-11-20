@@ -338,7 +338,7 @@ impl FromStr for PositionComment {
             }
         }
 
-        if comment != "" {
+        if !comment.is_empty() {
             unparsed.push(comment);
         }
         position_comment.unparsed = if !unparsed.is_empty() {
