@@ -89,7 +89,7 @@ pub fn separate_comment(s: &str) -> (Vec<&str>, &str) {
             .map(|pos| pos + 1)
             .unwrap_or(0);
 
-        let words: Vec<&str> = s[..word_start].trim().split_whitespace().collect();
+        let words: Vec<&str> = s[..word_start].split_whitespace().collect();
         let comment = s[word_start..].trim();
         (words, comment)
     } else {
