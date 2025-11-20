@@ -155,9 +155,27 @@ mod tests {
 
     #[test]
     fn invalid_hhmmss() {
-        assert_eq!(
-            "246060h".parse::<Timestamp>(),
-            Err(AprsError::InvalidTimestamp("246060h".to_owned()))
+        assert!("230000h".parse::<Timestamp>().is_ok(), "23 is a valid hour");
+        assert!(
+            "005900h".parse::<Timestamp>().is_ok(),
+            "59 is a valid minute"
+        );
+        assert!(
+            "000059h".parse::<Timestamp>().is_ok(),
+            "59 is a valid second"
+        );
+
+        assert!(
+            "240000h".parse::<Timestamp>().is_err(),
+            "24 is not a valid hour"
+        );
+        assert!(
+            "006000h".parse::<Timestamp>().is_err(),
+            "60 is not a valid minute"
+        );
+        assert!(
+            "000060h".parse::<Timestamp>().is_err(),
+            "60 is not a valid second"
         );
     }
 

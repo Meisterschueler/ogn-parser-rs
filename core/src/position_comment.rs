@@ -2,7 +2,7 @@ use rust_decimal::prelude::*;
 use serde::Serialize;
 use std::{convert::Infallible, str::FromStr};
 
-use crate::utils::{split_letter_number_pairs, split_value_unit};
+use crate::utils::{separate_comment, split_letter_number_pairs, split_value_unit};
 #[derive(Debug, PartialEq, Eq, Default, Clone, Serialize)]
 pub struct AdditionalPrecision {
     pub lat: u8,
@@ -83,8 +83,9 @@ impl FromStr for PositionComment {
         let mut position_comment = PositionComment {
             ..Default::default()
         };
+        let (words, comment) = separate_comment(s);
         let mut unparsed: Vec<_> = vec![];
-        for (idx, part) in s.split_ascii_whitespace().enumerate() {
+        for (idx, part) in words.into_iter().enumerate() {
             // The first part can be course + speed + altitude: ccc/sss/A=aaaaaa
             // ccc: course in degrees 0-360
             // sss: speed in km/h
@@ -336,6 +337,10 @@ impl FromStr for PositionComment {
                 unparsed.push(part);
             }
         }
+
+        if comment != "" {
+            unparsed.push(comment);
+        }
         position_comment.unparsed = if !unparsed.is_empty() {
             Some(unparsed.join(" "))
         } else {
@@ -544,4 +549,15 @@ fn parse_weather_duplicate_type() {
         result.unparsed,
         Some("187/004g007t075g78b63620".to_string())
     );
+}
+
+#[test]
+fn parse_position_with_station_info() {
+    let result = "120/050/A=000123 antenna: chinese 9dB"
+        .parse::<PositionComment>()
+        .unwrap();
+    assert_eq!(result.course, Some(120));
+    assert_eq!(result.speed, Some(50));
+    assert_eq!(result.altitude, Some(123));
+    assert_eq!(result.unparsed, Some("antenna: chinese 9dB".to_string()));
 }

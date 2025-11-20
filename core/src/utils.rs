@@ -81,6 +81,23 @@ pub fn split_letter_number_pairs(s: &str) -> Vec<(char, i32)> {
     result
 }
 
+pub fn separate_comment(s: &str) -> (Vec<&str>, &str) {
+    if let Some(colon_pos) = s.find(':') {
+        // find the position of the word before the colon
+        let word_start = s[..colon_pos]
+            .rfind(|c: char| c.is_whitespace())
+            .map(|pos| pos + 1)
+            .unwrap_or(0);
+
+        let words: Vec<&str> = s[..word_start].trim().split_whitespace().collect();
+        let comment = s[word_start..].trim();
+        (words, comment)
+    } else {
+        let words: Vec<&str> = s.split_whitespace().collect();
+        (words, "")
+    }
+}
+
 #[test]
 fn test_extract_values() {
     assert_eq!(
@@ -111,4 +128,20 @@ fn test_split_letter_number_pairs() {
     assert_eq!(parsed[3], ('X', 3));
     assert_eq!(parsed[4], ('Z', 0));
     assert_eq!(parsed[5], ('F', -432));
+}
+
+#[test]
+fn test_separate_comment() {
+    assert_eq!(
+        separate_comment("No colon here"),
+        (vec!["No", "colon", "here"], "")
+    );
+    assert_eq!(
+        separate_comment("RTX4050 fps120 game: condor soaring simulator"),
+        (vec!["RTX4050", "fps120"], "game: condor soaring simulator")
+    );
+    assert_eq!(
+        separate_comment("here: we: have: multiple: colons"),
+        (vec![], "here: we: have: multiple: colons")
+    );
 }
