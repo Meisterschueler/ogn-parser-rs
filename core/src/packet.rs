@@ -124,11 +124,11 @@ mod tests {
     #[test]
     fn parse() {
         let result = r"ICA3D17F2>APRS,qAS,dl4mea:/074849h4821.61N\01224.49E^322/103/A=003054 !W46! id213D17F2 -039fpm +0.0rot 2.5dB 3e -0.0kHz gps1x1".parse::<AprsPacket>().unwrap();
-        assert_eq!(result.from, Callsign::new("ICA3D17F2", None));
-        assert_eq!(result.to, Callsign::new("APRS", None));
+        assert_eq!(result.from, Callsign::new("ICA3D17F2"));
+        assert_eq!(result.to, Callsign::new("APRS"));
         assert_eq!(
             result.via,
-            vec![Callsign::new("qAS", None), Callsign::new("dl4mea", None),]
+            vec![Callsign::new("qAS"), Callsign::new("dl4mea"),]
         );
 
         match result.data {
@@ -150,7 +150,7 @@ mod tests {
         let result =
             r"ICA3D17F2>APRS,qAS,dl4mea:/074849h4821.61N\01224.49E^322/103/A=003054 Hochkönig"
                 .parse::<AprsPacket>();
-        assert_eq!(result.is_err(), true);
+        assert!(result.is_err());
     }
 
     #[test]
@@ -159,11 +159,11 @@ mod tests {
             r"ICA3D17F2>Aprs,qAS,dl4mea::DEST     :Hello World! This msg has a : colon {32975"
                 .parse::<AprsPacket>()
                 .unwrap();
-        assert_eq!(result.from, Callsign::new("ICA3D17F2", None));
-        assert_eq!(result.to, Callsign::new("Aprs", None));
+        assert_eq!(result.from, Callsign::new("ICA3D17F2"));
+        assert_eq!(result.to, Callsign::new("Aprs"));
         assert_eq!(
             result.via,
-            vec![Callsign::new("qAS", None), Callsign::new("dl4mea", None),]
+            vec![Callsign::new("qAS"), Callsign::new("dl4mea"),]
         );
 
         match result.data {
@@ -181,11 +181,11 @@ mod tests {
         let result = r"ICA3D17F2>APRS,qAS,dl4mea:>312359zStatus seems okay!"
             .parse::<AprsPacket>()
             .unwrap();
-        assert_eq!(result.from, Callsign::new("ICA3D17F2", None));
-        assert_eq!(result.to, Callsign::new("APRS", None));
+        assert_eq!(result.from, Callsign::new("ICA3D17F2"));
+        assert_eq!(result.to, Callsign::new("APRS"));
         assert_eq!(
             result.via,
-            vec![Callsign::new("qAS", None), Callsign::new("dl4mea", None),]
+            vec![Callsign::new("qAS"), Callsign::new("dl4mea"),]
         );
 
         match result.data {

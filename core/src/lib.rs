@@ -17,23 +17,11 @@
 //!
 //!     // Ok(
 //!     //     AprsPacket {
-//!     //         from: Callsign {
-//!     //             call: "ICA3D17F2",
-//!     //             ssid: None
-//!     //         },
-//!     //         to: Callsign {
-//!     //             call: "APRS",
-//!     //             ssid: None
-//!     //         },
+//!     //         from: Callsign("ICA3D17F2"),
+//!     //         to: Callsign("APRS"),
 //!     //         via: [
-//!     //             Callsign {
-//!     //                 call: "qAS",
-//!     //                 ssid: None
-//!     //             },
-//!     //             Callsign {
-//!     //                 call: "dl4mea",
-//!     //                 ssid: None
-//!     //             }
+//!     //             Callsign("qAS"),
+//!     //             Callsign("dl4mea")
 //!     //         ],
 //!     //         data: Position(
 //!     //             AprsPosition {
